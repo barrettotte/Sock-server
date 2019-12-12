@@ -1,6 +1,6 @@
 FROM alpine:3.10
 
-WORKDIR /usr/src/client
+WORKDIR /usr/src/skvdb
 
 COPY . .
 
