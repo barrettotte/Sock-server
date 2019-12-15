@@ -28,5 +28,3 @@ clean:
 debug:
 	-valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind-out.txt $(TARGET)
 
-run:	$(TARGET)
-		./$(TARGET) 127.0.0.1 "Hello World" 5024

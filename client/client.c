@@ -22,10 +22,6 @@ int main(int argc, char *argv[]){
     unsigned int echoStringLen;
     int bytesRcvd, totalBytesReceived;
 
-    if(argc != 3){
-        printf(stderr, "Usage: %s <Server IP> <Echo Word> [<Echo Port>]\n", argv[0]);
-        exit(1);
-    }
     servIP = argv[1];
     echoString = argv[2];
     serverPort = atoi(argv[3]);
@@ -38,17 +34,12 @@ int main(int argc, char *argv[]){
     socketGuard(connect(sock, (struct sockaddr *) &serverAddress, sizeof(serverAddress)), "Server connect failed.");
 
     echoStringLen = strlen(echoString);
-    if(send(sock, echoString, echoStringLen, 0) != echoStringLen){
-        dieWithError("send() sent a different number of bytes than expected");
-    }
+    socketGuard(send(sock, echoString, echoStringLen, 0), "Send failed.");
 
     totalBytesReceived = 0;
     printf("Received: ");
     while(totalBytesReceived < echoStringLen){
-        // buffer size-1 for null term
-        if((bytesRcvd = recv(sock, echoBuffer, BUFSIZE - 1, 0)) <= 0){
-            dieWithError("recv() failed or connection closed prematurely.");
-        }
+        bytesRcvd = socketGuard(recv(sock, echoBuffer, BUFSIZE-1, 0), "Server recv failed.");
         totalBytesReceived += bytesRcvd;
         echoBuffer[bytesRcvd] = '\0';
         printf("%s", echoBuffer);
