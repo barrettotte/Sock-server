@@ -1,15 +1,14 @@
 # Sock-KVDB
 
-
-A simple key value database to learn about sockets and multithreading.
+A simple key value database to learn more about sockets and multithreading.
 
 
 ## Commands
-* docker
-  * build ```docker build -t skvdb-server .```
-  * run   ```docker run --rm -it skvdb-server```
+* server: ```./server```
+* client: ```./client <user>```
 
 
 ## References
+* https://beej.us/guide/bgnet/html/
 * https://en.wikipedia.org/wiki/Key-value_database
 
