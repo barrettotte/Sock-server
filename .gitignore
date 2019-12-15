@@ -1,1 +1,6 @@
-#
+
+*.o
+valgrind-out.txt
+
+server/server
+client/client

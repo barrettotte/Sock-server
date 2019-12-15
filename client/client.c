@@ -1,57 +1,43 @@
-#include <stdio.h>          /* printf(), fprintf(), perror()            */
-#include <sys/socket.h>     /* socket(), connect(), send(), receive()   */
-#include <arpa/inet.h>      /* sockaddr_in, inet_addr()                 */
-#include <stdlib.h>         /* atoi()                                   */
-#include <string.h>         /* memset()                                 */
-#include <unistd.h>         /* close()                                  */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
-#define RCVBUFSIZE 32       /* size of receive buffer                   */
+#define BUFSIZE 1024
 
-void dieWithError(char *errMsg);
 
-// invoke with $ echoclient 127.0.0.1 "Hello World"
+int socketGuard(int result, const char* msg);
+
 
 int main(int argc, char *argv[]){
 
     int sock;
-    struct sockaddr_in echoServAddr;
-    unsigned short echoServPort;
+    struct sockaddr_in serverAddress;
+    unsigned short serverPort;
     char *servIP;
     char *echoString;
-    char echoBuffer[RCVBUFSIZE];
+    char echoBuffer[BUFSIZE];
     unsigned int echoStringLen;
     int bytesRcvd, totalBytesReceived;
 
-    if((argc < 3) || (argc > 4)){
-        fprintf(stderr, "Usage: %s <Server IP> <Echo Word> [<Echo Port>]\n", argv[0]);
+    if(argc != 3){
+        printf(stderr, "Usage: %s <Server IP> <Echo Word> [<Echo Port>]\n", argv[0]);
         exit(1);
     }
-
-
     servIP = argv[1];
     echoString = argv[2];
+    serverPort = atoi(argv[3]);
 
-    if(argc == 4){
-        echoServPort = atoi(argv[3]);
-    } else {
-        echoServPort = 7; // typical echo port
-    }
-
-    if((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0){
-        dieWithError("socket() failed.");
-    }
-
-    memset(&echoServAddr, 0, sizeof(echoServAddr));
-    echoServAddr.sin_family = AF_INET;
-    echoServAddr.sin_addr.s_addr = inet_addr(servIP); // convert str IP to 32-bit binary
-    echoServAddr.sin_port = htons(echoServPort); // fix byte ordering
-
-    if(connect(sock, (struct sockaddr *) &echoServAddr, sizeof(echoServAddr)) < 0){
-        dieWithError("connect() failed.");
-    }
+    sock = socketGuard(socket(PF_INET, SOCK_STREAM, IPPROTO_TCP), "Socket create failed.");
+    memset(&serverAddress, 0, sizeof(serverAddress));
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_addr.s_addr = inet_addr(servIP);
+    serverAddress.sin_port = htons(serverPort);
+    socketGuard(connect(sock, (struct sockaddr *) &serverAddress, sizeof(serverAddress)), "Server connect failed.");
 
     echoStringLen = strlen(echoString);
-
     if(send(sock, echoString, echoStringLen, 0) != echoStringLen){
         dieWithError("send() sent a different number of bytes than expected");
     }
@@ -60,7 +46,7 @@ int main(int argc, char *argv[]){
     printf("Received: ");
     while(totalBytesReceived < echoStringLen){
         // buffer size-1 for null term
-        if((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE - 1, 0)) <= 0){
+        if((bytesRcvd = recv(sock, echoBuffer, BUFSIZE - 1, 0)) <= 0){
             dieWithError("recv() failed or connection closed prematurely.");
         }
         totalBytesReceived += bytesRcvd;
@@ -73,7 +59,10 @@ int main(int argc, char *argv[]){
     exit(0);
 }
 
-void dieWithError(char *errMsg){
-    perror(errMsg);
-    exit(1);
+int socketGuard(int result, const char *msg){
+    if(result == -1){
+        perror(msg);
+        exit(1);
+    }
+    return result;
 }
