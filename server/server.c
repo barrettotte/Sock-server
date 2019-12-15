@@ -50,6 +50,7 @@ int main(int argc, char** argv){
         );
         int *pclient = malloc(sizeof(int));
         *pclient = clientSocket;
+        
         pthread_mutex_lock(&mutex);
         enqueue(pclient);
         printf("Client enqueued. %d client(s) active.\n", ++activeClients);
@@ -84,7 +85,6 @@ void *handleClient(void* socketDesc){
     message = "Hello Client! \n";
     socketGuard(write(socket, message, strlen(message)), "Client write failed");
 
-    read_size = recv(socket, client_message, 2000, 0), "Client recv failed";
     while((read_size = recv(socket, client_message, 2000, 0), "Client recv failed") > 0){
         message = "You wrote: ";
         socketGuard(write(socket, message, strlen(message)), "Client write failed");
