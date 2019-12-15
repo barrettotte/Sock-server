@@ -1,7 +1,9 @@
 .vscode/
 
 *.o
+*.gch
 valgrind-out.txt
 
 server/server
 client/client
+test/thpool

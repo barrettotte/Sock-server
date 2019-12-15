@@ -3,10 +3,13 @@
 # Testing server with multiple clients
 ip=127.0.0.1
 port=5024
-len=10
+len=2
 
+clear
+echo
 for i in $( seq 0 $len )
 do 
-  echo running client $i of $len
-  ./client/client $ip "Hello server" $port
+  echo Running client $i of $len
+  ./client/client $ip "Hello Server!" $port
+  echo
 done

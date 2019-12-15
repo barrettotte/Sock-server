@@ -1,6 +1,6 @@
-#ifndef QUEUE_H_
+#ifndef __QUEUE_H__
 
-#define QUEUE_H_
+#define __QUEUE_H__
 
 struct node {
     struct node* next;

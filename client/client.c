@@ -27,6 +27,7 @@ int main(int argc, char *argv[]){
     serverPort = atoi(argv[3]);
 
     sock = socketGuard(socket(PF_INET, SOCK_STREAM, IPPROTO_TCP), "Socket create failed.");
+    
     memset(&serverAddress, 0, sizeof(serverAddress));
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_addr.s_addr = inet_addr(servIP);
@@ -37,7 +38,7 @@ int main(int argc, char *argv[]){
     socketGuard(send(sock, echoString, echoStringLen, 0), "Send failed.");
 
     totalBytesReceived = 0;
-    printf("Received: ");
+    printf("Client received: ");
     while(totalBytesReceived < echoStringLen){
         bytesRcvd = socketGuard(recv(sock, echoBuffer, BUFSIZE-1, 0), "Server recv failed.");
         totalBytesReceived += bytesRcvd;

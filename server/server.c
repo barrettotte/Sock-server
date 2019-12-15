@@ -1,94 +1,68 @@
-#include <stdio.h>      /* printf(), fprintf(), perror() */
-#include <sys/socket.h> /* socket(), bind(), connect()   */
-#include <arpa/inet.h>  /* sockaddr_in, inet_ntoa()      */
-#include <stdlib.h>     /* atoi()                        */
-#include <string.h>     /* memset()                      */
-#include <unistd.h>     /* close()                       */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <arpa/inet.h> 
 #include <pthread.h>
 
-#include "queue.h"
+#include "thpool.h"
 
 #define SERVERPORT 5024
 #define BUFSIZE 4096
-#define SERVER_BACKLOG 100
-#define THREAD_POOL_SIZE 20
+#define SERVER_BACKLOG 25
+#define THREAD_POOL_SIZE 4
 
 
-void* handleClient(void* socket);
-void* threadWrapper(void *arg);
-int   socketGuard(int result, const char* msg);
-
-
-int activeClients = 0;
-pthread_t thread_pool[THREAD_POOL_SIZE];
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t condSig = PTHREAD_COND_INITIALIZER;
+void handle_client(void* socket);
+int  socket_guard(int result, const char* msg);
 
 
 int main(int argc, char** argv){
-    int serverSocket, clientSocket, addrSize;
-    struct sockaddr_in serverAddr, clientAddr;
+    int srvdsc, clidsc;
+    struct sockaddr_in srvaddr, cliaddr;
+    thpool_t *tm;
     
     // Create server
-    socketGuard((serverSocket = socket(AF_INET, SOCK_STREAM, 0)), "Server create failed");
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
-    serverAddr.sin_port = htons(SERVERPORT);
-    socketGuard(bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)), 
+    socket_guard((srvdsc = socket(AF_INET, SOCK_STREAM, 0)), "Server create failed");
+    
+    srvaddr.sin_family = AF_INET;
+    srvaddr.sin_addr.s_addr = INADDR_ANY;
+    srvaddr.sin_port = htons(SERVERPORT);
+    socket_guard(bind(srvdsc, (struct sockaddr*)&srvaddr, sizeof(srvaddr)), 
         "Server bind failed"
     );
-    socketGuard(listen(serverSocket, SERVER_BACKLOG), "Server listen failed");
 
-    // Create thread pool
-    for(int i = 0; i < THREAD_POOL_SIZE; i++){
-        pthread_create(&thread_pool[i], NULL, threadWrapper, NULL);
+    socket_guard(listen(srvdsc, SERVER_BACKLOG), "Server listen failed");
+    tm = thpool_create(THREAD_POOL_SIZE);
+
+    int c = sizeof(struct sockaddr_in);
+    while(socket_guard(
+      clidsc = accept(srvdsc, (struct sockaddr *)&cliaddr, (socklen_t *)&c), "Client accept failed."))
+    {
+        if(!thpool_add_work(tm, handle_client, (void*)&clidsc)){
+            printf("Error creating thread.");
+            return 1;
+        }
     }
-    while(1){
-        addrSize = sizeof(struct sockaddr);
-        socketGuard(clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, (socklen_t*) &addrSize), 
-            "Client accept failed."
-        );
-        int *pclient = malloc(sizeof(int));
-        *pclient = clientSocket;
-        
-        pthread_mutex_lock(&mutex);
-        enqueue(pclient);
-        printf("Client enqueued. %d client(s) active.\n", ++activeClients);
-        pthread_cond_signal(&condSig);
-        pthread_mutex_unlock(&mutex);
-    }
+    thpool_wait(tm);
+
+    thpool_destroy(tm);
     return 0;
 }
 
-void* threadWrapper(void *arg){
-    while(1){
-        pthread_mutex_lock(&mutex);
-        int *client;
-        if((client = dequeue()) == NULL){
-            pthread_cond_wait(&condSig, &mutex);
-            client = dequeue();
-            printf("Client dequeued. %d client(s) active.\n", --activeClients);
-        }
-        pthread_mutex_unlock(&mutex);
-        if(client != NULL){
-            handleClient(client);
-        }
-    }
-}
-
-void *handleClient(void* socketDesc){
-    int socket = *(int*)socketDesc;
-    free(socketDesc);
+void handle_client(void *sockdsc){
+    int socket = *(int *)sockdsc;
     int read_size;
     char* message, client_message[2000];
 
     message = "Hello Client! \n";
-    socketGuard(write(socket, message, strlen(message)), "Client write failed");
+    socket_guard(write(socket, message, strlen(message)), "Client write failed");
 
     while((read_size = recv(socket, client_message, 2000, 0), "Client recv failed") > 0){
-        message = "You wrote: ";
-        socketGuard(write(socket, message, strlen(message)), "Client write failed");
-        socketGuard(write(socket, client_message, read_size), "Client write failed");
+        message = "Server received: ";
+        socket_guard(write(socket, message, strlen(message)), "Client write failed");
+        socket_guard(write(socket, client_message, read_size), "Client write failed");
     }
     if(read_size == 0){
         printf("Client disconnected.\n");
@@ -96,11 +70,11 @@ void *handleClient(void* socketDesc){
     } else if(read_size == -1){
         printf("Client could not be reached.\n");
     }
+    free(sockdsc);
     close(socket);
-    return NULL;
 }
 
-int socketGuard(int result, const char *msg){
+int socket_guard(int result, const char *msg){
     if(result == -1){
         perror(msg);
         exit(1);
