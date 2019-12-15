@@ -10,6 +10,6 @@ echo
 for i in $( seq 0 $len )
 do 
   echo Running client $i of $len
-  ./client/client $ip "Hello Server!" $port
+  ./client/client "user$i"
   echo
 done

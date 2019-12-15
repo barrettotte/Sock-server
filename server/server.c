@@ -9,7 +9,7 @@
 #include "thpool.h"
 
 #define SERVERPORT 5024
-#define BUFSIZE 4096
+#define BUFSIZE 2048
 #define SERVER_BACKLOG 25
 #define THREAD_POOL_SIZE 4
 
@@ -30,23 +30,29 @@ int main(int argc, char** argv){
     srvaddr.sin_addr.s_addr = INADDR_ANY;
     srvaddr.sin_port = htons(SERVERPORT);
     socket_guard(bind(srvdsc, (struct sockaddr*)&srvaddr, sizeof(srvaddr)), 
-        "Server bind failed"
+        "Server bind failed\n"
     );
 
     socket_guard(listen(srvdsc, SERVER_BACKLOG), "Server listen failed");
-    tm = thpool_create(THREAD_POOL_SIZE);
+    printf("Listening on port %d...\n", SERVERPORT);
 
+    tm = thpool_create(THREAD_POOL_SIZE);
     int c = sizeof(struct sockaddr_in);
-    while(socket_guard(
-      clidsc = accept(srvdsc, (struct sockaddr *)&cliaddr, (socklen_t *)&c), "Client accept failed."))
-    {
-        if(!thpool_add_work(tm, handle_client, (void*)&clidsc)){
-            printf("Error creating thread.");
-            return 1;
+
+    while(1){
+        clidsc = accept(srvdsc, (struct sockaddr *)&cliaddr, (socklen_t *)&c);
+        if(clidsc == -1){
+            printf("Problem accepting new connection.\n");
+        } 
+        else {
+            printf("Accepted new connection.\n");
+            if(!thpool_add_work(tm, handle_client, (void*)&clidsc)){
+                printf("Error creating thread.\n");
+                return 1;
+            }
         }
     }
     thpool_wait(tm);
-
     thpool_destroy(tm);
     return 0;
 }
@@ -54,15 +60,15 @@ int main(int argc, char** argv){
 void handle_client(void *sockdsc){
     int socket = *(int *)sockdsc;
     int read_size;
-    char* message, client_message[2000];
+    char buffer[BUFSIZE];
 
-    message = "Hello Client! \n";
-    socket_guard(write(socket, message, strlen(message)), "Client write failed");
-
-    while((read_size = recv(socket, client_message, 2000, 0), "Client recv failed") > 0){
-        message = "Server received: ";
-        socket_guard(write(socket, message, strlen(message)), "Client write failed");
-        socket_guard(write(socket, client_message, read_size), "Client write failed");
+    while((read_size = recv(socket, buffer, BUFSIZE, 0), "Client recv failed") > 0){
+        printf("Received: %s\n", buffer);
+        write(socket, "ACK", 8);
+        if(strcmp(buffer, ":q") == 0){
+            read_size = 0;
+            break;
+        }
     }
     if(read_size == 0){
         printf("Client disconnected.\n");
@@ -70,7 +76,6 @@ void handle_client(void *sockdsc){
     } else if(read_size == -1){
         printf("Client could not be reached.\n");
     }
-    free(sockdsc);
     close(socket);
 }
 
