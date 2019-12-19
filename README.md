@@ -1,6 +1,6 @@
-# Sock-KVDB
+# Sock-server
 
-A simple key value database to learn more about sockets and multithreading.
+A simple multithreaded server to learn more about sockets and multithreading with C.
 
 
 ## Commands
@@ -10,5 +10,4 @@ A simple key value database to learn more about sockets and multithreading.
 
 ## References
 * https://beej.us/guide/bgnet/html/
-* https://en.wikipedia.org/wiki/Key-value_database
 
