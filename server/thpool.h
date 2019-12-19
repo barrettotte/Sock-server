@@ -11,7 +11,7 @@ typedef void (*thread_func_t)(void *arg);
 
 
 /* Create thread pool */
-thpool_t *thpool_create(size_t i);
+thpool_t *thpool_create(int threadnum);
 
 
 /* Enqueue work to be done by thread in pool */

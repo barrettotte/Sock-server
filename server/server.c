@@ -21,7 +21,7 @@ int  socket_guard(int result, const char* msg);
 int main(int argc, char** argv){
     int srvdsc, clidsc;
     struct sockaddr_in srvaddr, cliaddr;
-    thpool_t *tm;
+    thpool_t *tp;
     
     // Create server
     socket_guard((srvdsc = socket(AF_INET, SOCK_STREAM, 0)), "Server create failed");
@@ -36,7 +36,7 @@ int main(int argc, char** argv){
     socket_guard(listen(srvdsc, SERVER_BACKLOG), "Server listen failed");
     printf("Listening on port %d...\n", SERVERPORT);
 
-    tm = thpool_create(THREAD_POOL_SIZE);
+    tp = thpool_create(THREAD_POOL_SIZE);
     int c = sizeof(struct sockaddr_in);
 
     while(1){
@@ -46,14 +46,14 @@ int main(int argc, char** argv){
         } 
         else {
             printf("Accepted new connection.\n");
-            if(!thpool_add_work(tm, handle_client, (void*)&clidsc)){
+            if(!thpool_add_work(tp, handle_client, (void*)&clidsc)){
                 printf("Error creating thread.\n");
                 return 1;
             }
         }
     }
-    thpool_wait(tm);
-    thpool_destroy(tm);
+    thpool_wait(tp);
+    thpool_destroy(tp);
     return 0;
 }
 
