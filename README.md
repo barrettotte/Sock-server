@@ -17,11 +17,11 @@ The username is decided by the client application, so there is no security aroun
 
 
 ## Client Commands
-* ```:q``` - Disconnect from server
-* ```:i``` - Get info about server
-* ```:g 1``` - Get value for element with key of 1 from database
-* ```:s 1 "Hello World"``` - Set value for element with key of 1 to "Hello World"
 * ```:d 1``` - Delete element with key of 1
+* ```:g 1``` - Get value for element with key of 1 from database
+* ```:i``` - Get info about server
+* ```:q``` - Disconnect from server
+* ```:s 1 "Hello World"``` - Set value for element with key of 1 to "Hello World"
 
 
 ## Commands
